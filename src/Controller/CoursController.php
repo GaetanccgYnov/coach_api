@@ -57,7 +57,6 @@ class CoursController extends AbstractController
     #[Route('/api/cours', name: 'cours.create', methods: ['POST'])]
     #[IsGranted("ROLE_COACH", statusCode: 403, message: "Access denied")]
     public function createCours(Request $request, ValidatorInterface $validator, TagAwareCacheInterface $cache, UrlGeneratorInterface $urlGenerator, SerializerInterface $serializer, EntityManagerInterface $manager, CoursRepository $coursRepository, UserRepository $userRepository) {
-        
         $data = $request->toArray();
 
         $cours = $serializer->deserialize($request->getContent(), Cours::class, 'json');
@@ -73,7 +72,7 @@ class CoursController extends AbstractController
             ->setUpdatedAt(new \DateTime());
 
         $accessesData = [];
-        if (isset($data['accessUserIds']) && is_array($data['accessUserIds'])) {
+        if (!empty($data['accessUserIds'])) {
             foreach ($data['accessUserIds'] as $userId) {
                 $user = $userRepository->find($userId);
                 if ($user) {
@@ -87,6 +86,19 @@ class CoursController extends AbstractController
                     $accessesData[] = $coursAccess;
                 }
             }
+        } else {
+            // If no specific users are specified, grant access to all users with roles ROLE_COACH or ROLE_ELEVE
+            $users = $userRepository->findByRoles(['ROLE_COACH', 'ROLE_ELEVE']);
+            foreach ($users as $user) {
+                $coursAccess = new CoursAccess();
+                $coursAccess->setUser($user)
+                            ->setCours($cours)
+                            ->setCreatedAt(new \DateTime())
+                            ->setUpdatedAt(new \DateTime())
+                            ->setStatus('granted');
+                $manager->persist($coursAccess);
+                $accessesData[] = $coursAccess;
+            }
         }
 
         $errors = $validator->validate($cours);
@@ -98,6 +110,7 @@ class CoursController extends AbstractController
         $manager->flush();
         $cache->invalidateTags(['coursCache']);
 
+        // Serialize and combine data for response
         $coursData = $serializer->serialize($cours, 'json', ['groups' => 'getAllCours']);
         $accessesSerialized = array_map(function ($access) use ($serializer) {
             return json_decode($serializer->serialize($access, 'json', ['groups' => ['getWhoAccess', 'groupForCours', 'groupForUser']]), true);
@@ -109,6 +122,7 @@ class CoursController extends AbstractController
         $location = $urlGenerator->generate('cours.getOne', ['id' => $cours->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
         return new JsonResponse($combinedData, JsonResponse::HTTP_CREATED, ["Location" => $location]);
     }
+
 
     #[Route('/api/cours/{id}', name: 'cours.update', methods: ['PUT'])]
     #[IsGranted("ROLE_COACH", statusCode: 403, message: "Access denied")]
