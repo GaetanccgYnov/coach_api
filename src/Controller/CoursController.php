@@ -36,7 +36,7 @@ class CoursController extends AbstractController
             echo 'Cache miss';
             $item->tag('coursCache');
             $cours = $coursRepository->findBy(['status' => 'on']);
-            return $serializer->serialize($cours, 'json');
+            return $serializer->serialize($cours, 'json', ['groups' => 'getAllCours']);
         });
 
         return new JsonResponse($jsonCours, JsonResponse::HTTP_OK, [], true);
@@ -44,15 +44,15 @@ class CoursController extends AbstractController
     }
     
     #[Route('/api/cours/{id}', name: 'cours.getOne', methods: ['GET'])]
-    #[IsGranted("ROLE_ADMIN", statusCode: 403, message: "Access denied")]
+    #[IsGranted("ROLE_COACH", statusCode: 403, message: "Access denied")]
     public function getOneCours(CoursRepository $coursRepository, int $id, SerializerInterface $serializer) {
         $cours = $coursRepository->find($id);
-        $jsonCours = $serializer->serialize($cours, 'json');
-        return new JsonResponse($jsonCours, 200, [], true);
+        $jsonCours = $serializer->serialize($cours, 'json', ['groups' => 'getAllCours']);
+        return new JsonResponse($jsonCours, JsonResponse::HTTP_OK, [], true);
     }
 
     #[Route('/api/cours', name: 'cours.create', methods: ['POST'])]
-    #[IsGranted("ROLE_ADMIN", statusCode: 403, message: "Access denied")]
+    #[IsGranted("ROLE_COACH", statusCode: 403, message: "Access denied")]
     public function createCours(Request $request, ValidatorInterface $validator, TagAwareCacheInterface $cache, UrlGeneratorInterface $urlGenerator, SerializerInterface $serializer, EntityManagerInterface $manager) {
         
         $data = $request->toArray();
@@ -81,12 +81,12 @@ class CoursController extends AbstractController
         $cache->invalidateTags(['coursCache']);
 
         $jsonCours = $serializer->serialize($cours, 'json', ['groups' => "getAllCours"]);
-        $location = $urlGenerator->generate('cours.getOne', ['idCours' => $cours->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
+        $location = $urlGenerator->generate('cours.getOne', ['id' => $cours->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
         return new JsonResponse($jsonCours, JsonResponse::HTTP_CREATED, ["Location" => $location], true);
     }
 
     #[Route('/api/cours/{id}', name: 'cours.update', methods: ['PUT'])]
-    #[IsGranted("ROLE_ADMIN", statusCode: 403, message: "Access denied")]
+    #[IsGranted("ROLE_COACH", statusCode: 403, message: "Access denied")]
     public function updateCours(Request $request, CoursRepository $coursRepository, ValidatorInterface $validator, TagAwareCacheInterface $cache, int $id, SerializerInterface $serializer, EntityManagerInterface $manager) {
         $cours = $coursRepository->find($id);
         if (!$cours) {
@@ -119,7 +119,7 @@ class CoursController extends AbstractController
     }
 
     #[Route('/api/cours/{id}', name: 'cours.delete', methods: ['DELETE'])]
-    #[IsGranted("ROLE_ADMIN", statusCode: 403, message: "Access denied")]
+    #[IsGranted("ROLE_COACH", statusCode: 403, message: "Access denied")]
     public function deleteCours(CoursRepository $coursRepository, TagAwareCacheInterface $cache, int $id, EntityManagerInterface $manager) {
         $cours = $coursRepository->find($id);
         if (!$cours) {
@@ -131,7 +131,7 @@ class CoursController extends AbstractController
 
         $cache->invalidateTags(['coursCache']);
 
-        return new JsonResponse("Cours deleted", JsonResponse::HTTP_OK);
+        return new JsonResponse("Cours suprimé", JsonResponse::HTTP_OK);
     }
 
     // FIN CRUD COURS

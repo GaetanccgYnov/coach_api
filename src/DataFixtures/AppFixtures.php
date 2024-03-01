@@ -8,6 +8,7 @@ use App\Entity\User;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use App\Entity\Cours;
 use DateTime;
+use App\Entity\Persona;
 
 
 
@@ -35,96 +36,86 @@ class AppFixtures extends Fixture
     public function load(ObjectManager $manager): void
     {   
         
-        // create public user
-        $publicUser = new User();
-        $password = 'password';
-        $publicUser
-            ->setUsername("public@". $password)
-            ->setUuid($this->faker->uuid)
-            ->setPassword($this->userPasswordHasher->hashPassword($publicUser, $password))
-            ->setRoles(["ROLE_PUBLIC"]);
+        // Création d'un utilisateur "public"
+        $this->createUser($manager, "public@example.com", "password", ["ROLE_PUBLIC"]);
 
-        $manager->persist($publicUser);
-        $manager->flush();
-        
-        // create 3 user
+        // Création de 3 utilisateurs "élèves"
         for ($i = 0; $i < 3; $i++) {
-            $user = new User();
-            $password = $this->faker->password(2, 6);
-            $user
-                ->setUsername('user@'.$password)
-                ->setUuid($this->faker->uuid)
-                ->setPassword($this->userPasswordHasher->hashPassword($user, $password))
-                ->setRoles(["ROLE_USER"]);
-            $manager->persist($user);
+            $this->createUser($manager, $this->faker->email, $this->faker->password(8, 20), ["ROLE_ELEVE"]);
         }
-        $manager->flush();
 
-        // create admin user
-        $adminUser = new User();
-        $password = 'password';
-        $adminUser
-            ->setUsername("admin")
-            ->setUuid($this->faker->uuid)
-            ->setPassword($this->userPasswordHasher->hashPassword($adminUser, $password))
-            ->setRoles(["ROLE_ADMIN"]);
-            $manager->persist($adminUser);
-        $manager->flush();
+        // Création d'un utilisateur "coach" avec des identifiants spécifiques
+        $this->createUser($manager, "admin@example.com", "password", ["ROLE_COACH"]);
 
-        // Enfants 5 à 8 ans - Samedi
-        $this->createCours($manager, 'Classe MMA Mixte Enfants 5 à 8 ans', 'Samedi', '09:00', '10:00', 14);
-        
-        // SMS Enfants 5 à 8 ans - Samedi
-        $this->createCours($manager, 'SMS Enfants 5 à 8 ans', 'Samedi', '14:00', '15:00', 14);
-        
-        // Enfants 8 à 12 ans - Samedi
-        $this->createCours($manager, 'Classe MMA Mixte Enfants 8 à 12 ans', 'Samedi', '15:00', '16:00', 16);
-        
-        // Classe ADO - Samedi
-        $this->createCours($manager, 'Classe ADO', 'Samedi', '16:00', '17:30', 20);
-        
-        // Circuit Training - Samedi
-        $this->createCours($manager, 'Circuit Training', 'Samedi', '17:30', '18:30', 14);
-        
-        // SMS Enfants 8 à 12 ans - Samedi
-        $this->createCours($manager, 'SMS Enfants 8 à 12 ans', 'Samedi', '10:00', '11:00', 16);
-        
-        // Classe MMA Mixte ADO - Samedi
-        $this->createCours($manager, 'Classe MMA Mixte ADO', 'Samedi', '11:00', '12:30', 20);
-        
-        // Grappling Mixte - Samedi
-        $this->createCours($manager, 'Grappling Mixte', 'Samedi', '18:30', '20:00', 30);
-        
-        // Pied-poing Classe 1 - Vendredi
-        $this->createCours($manager, 'Pied-poing Classe 1', 'Vendredi', '19:00', '20:30', 22);
-        
-        // MMA Vétéran - Vendredi
-        $this->createCours($manager, 'MMA Vétéran', 'Vendredi', '19:15', '20:15', 18);
-        
-        // Pied-poing Classe 2 et 3 - Vendredi
-        $this->createCours($manager, 'Pied-poing Classe 2 et 3', 'Vendredi', '20:30', '22:00', 20);
-        
-        // Body MMA - Vendredi
-        $this->createCours($manager, 'Body MMA', 'Vendredi', '19:30', '20:30', 14);
-        
-        // Sparring Assaut - Vendredi
-        $this->createCours($manager, 'Sparring Assaut', 'Vendredi', '18:30', '19:30', 30);
-        
-        // Circuit Training (2) - Vendredi
-        $this->createCours($manager, 'Circuit Training', 'Vendredi', '20:15', '21:15', 16);
+
+        // create cours
+        // Lundi
+        $this->addCours($manager, 'Pied-poing Classe 1', 'Lundi', '19:00', '20:30');
+        $this->addCours($manager, 'MMA Vétéran', 'Lundi', '19:15', '20:15');
+        $this->addCours($manager, 'Pied-poing Classe 2 et 3', 'Lundi', '20:30', '22:00');
+
+        // Mardi
+        $this->addCours($manager, 'GRAPPLING MIXTE', 'Mardi', '18:30', '20:00');
+        $this->addCours($manager, 'Body MMA (1)', 'Mardi', '19:30', '20:30');
+
+        // Mercredi
+        $this->addCours($manager, 'Enfants 5 à 8 ans', 'Mercredi', '14:00', '15:00');
+        $this->addCours($manager, 'Enfants 8 à 12 ans', 'Mercredi', '15:00', '16:00');
+        $this->addCours($manager, 'Classe ADO', 'Mercredi', '16:00', '17:30');
+        $this->addCours($manager, 'Circuit Training (2)', 'Mercredi', '17:30', '18:30');
+        $this->addCours($manager, 'MMA Vétéran(1)', 'Mercredi', '19:15', '20:15');
+
+        // Jeudi
+        $this->addCours($manager, 'Pied-poing Classe 1', 'Jeudi', '19:00', '20:30');
+        $this->addCours($manager, 'Pied-poing Classe 2 et 3', 'Jeudi', '20:30', '22:00');
+
+        // Vendredi
+        $this->addCours($manager, 'Sparring Assaut *', 'Vendredi', '18:30', '19:30');
+        $this->addCours($manager, 'Body MMA (1)', 'Vendredi', '19:30', '20:30');
+        $this->addCours($manager, 'Circuit Training (2)', 'Vendredi', '20:15', '21:15');
+
+        // Samedi
+        $this->addCours($manager, 'Enfants 5 à 8 ans', 'Samedi', '09:00', '10:00');
+        $this->addCours($manager, 'Enfants 8 à 12 ans', 'Samedi', '10:00', '11:00');
+        $this->addCours($manager, 'Classe MMA Mixte ADO', 'Samedi', '11:00', '12:30');
+        $this->addCours($manager, 'Classe MMA Mixte ADULTE', 'Samedi', '09:30', '11:00');
 
         $manager->flush();
-
     }
 
-    private function createCours(ObjectManager $manager, string $nom, string $jour, string $heureDebut, string $heureFin, int $placesDisponibles): void
+    private function createUser(ObjectManager $manager, string $email, string $password, array $roles): void
+    {
+        $user = new User();
+        $persona = new Persona();
+
+        $user->setEmail($email)
+             ->setPassword($this->userPasswordHasher->hashPassword($user, $password))
+             ->setRoles($roles);
+
+        $persona->setNom($this->faker->lastName)
+                ->setPrenom($this->faker->firstName)
+                ->setDateNaissance($this->faker->dateTimeBetween('-100 years', '-18 years'))
+                ->setGenre($this->faker->randomElement(['homme', 'femme']))
+                ->setMail($user->getEmail()) // Utiliser le même email que l'utilisateur
+                ->setAdresse($this->faker->address)
+                ->setStatus('on')
+                ->setCreatedAt(new DateTime())
+                ->setUpdatedAt(new DateTime());
+
+        $user->setPersona($persona);
+
+        $manager->persist($user);
+        $manager->persist($persona);
+    }
+
+    private function addCours(ObjectManager $manager, string $nom, string $jour, string $heureDebut, string $heureFin)
     {
         $cours = new Cours();
         $cours->setNom($nom)
               ->setJour($jour)
               ->setHeureDebut(new DateTime($heureDebut))
               ->setHeureFin(new DateTime($heureFin))
-              ->setPlacesDisponibles($placesDisponibles)
+              ->setPlacesDisponibles($this->faker->numberBetween(14, 40))
               ->setStatus('on')
               ->setCreatedAt(new DateTime())
               ->setUpdatedAt(new DateTime());

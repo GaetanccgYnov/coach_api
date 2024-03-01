@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\CoursRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: CoursRepository::class)]
 class Cours
@@ -12,26 +13,34 @@ class Cours
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['getAllCours'])]
     private ?int $id = null;
 
+    #[Groups(['getAllCours'])]
     #[ORM\Column(length: 255)]
     private ?string $nom = null;
 
+    #[Groups(['getAllCours'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
+    #[Groups(['getAllCours'])]
     #[ORM\Column(length: 255)]
     private ?string $jour = null;
 
+    #[Groups(['getAllCours'])]
     #[ORM\Column(type: Types::TIME_MUTABLE)]
     private ?\DateTimeInterface $heureDebut = null;
 
+    #[Groups(['getAllCours'])]
     #[ORM\Column(type: Types::TIME_MUTABLE)]
     private ?\DateTimeInterface $heureFin = null;
 
+    #[Groups(['getAllCours'])]
     #[ORM\Column]
     private ?int $placesDisponibles = null;
 
+    #[Groups(['getAllCours'])]
     #[ORM\Column(length: 24)]
     private ?string $status = null;
 
