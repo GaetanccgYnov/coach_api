@@ -16,6 +16,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Cours;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Component\Security\Core\Security;
+use App\Repository\UserRepository;
+use App\Entity\CoursAccess;
 
 class CoursController extends AbstractController
 {
@@ -54,7 +56,7 @@ class CoursController extends AbstractController
 
     #[Route('/api/cours', name: 'cours.create', methods: ['POST'])]
     #[IsGranted("ROLE_COACH", statusCode: 403, message: "Access denied")]
-    public function createCours(Request $request, ValidatorInterface $validator, TagAwareCacheInterface $cache, UrlGeneratorInterface $urlGenerator, SerializerInterface $serializer, EntityManagerInterface $manager) {
+    public function createCours(Request $request, ValidatorInterface $validator, TagAwareCacheInterface $cache, UrlGeneratorInterface $urlGenerator, SerializerInterface $serializer, EntityManagerInterface $manager, CoursRepository $coursRepository, UserRepository $userRepository) {
         
         $data = $request->toArray();
 
@@ -70,6 +72,22 @@ class CoursController extends AbstractController
             ->setCreatedAt(new \DateTime())
             ->setUpdatedAt(new \DateTime());
 
+        $accessesData = [];
+        if (isset($data['accessUserIds']) && is_array($data['accessUserIds'])) {
+            foreach ($data['accessUserIds'] as $userId) {
+                $user = $userRepository->find($userId);
+                if ($user) {
+                    $coursAccess = new CoursAccess();
+                    $coursAccess->setUser($user)
+                                ->setCours($cours)
+                                ->setCreatedAt(new \DateTime())
+                                ->setUpdatedAt(new \DateTime())
+                                ->setStatus('granted');
+                    $manager->persist($coursAccess);
+                    $accessesData[] = $coursAccess;
+                }
+            }
+        }
 
         $errors = $validator->validate($cours);
         if (count($errors) > 0) {
@@ -78,12 +96,18 @@ class CoursController extends AbstractController
 
         $manager->persist($cours);
         $manager->flush();
-
         $cache->invalidateTags(['coursCache']);
 
-        $jsonCours = $serializer->serialize($cours, 'json', ['groups' => "getAllCours"]);
+        $coursData = $serializer->serialize($cours, 'json', ['groups' => 'getAllCours']);
+        $accessesSerialized = array_map(function ($access) use ($serializer) {
+            return json_decode($serializer->serialize($access, 'json', ['groups' => ['getWhoAccess', 'groupForCours', 'groupForUser']]), true);
+        }, $accessesData);
+
+        $combinedData = json_decode($coursData, true);
+        $combinedData['accesses'] = $accessesSerialized;
+
         $location = $urlGenerator->generate('cours.getOne', ['id' => $cours->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
-        return new JsonResponse($jsonCours, JsonResponse::HTTP_CREATED, ["Location" => $location], true);
+        return new JsonResponse($combinedData, JsonResponse::HTTP_CREATED, ["Location" => $location]);
     }
 
     #[Route('/api/cours/{id}', name: 'cours.update', methods: ['PUT'])]

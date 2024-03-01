@@ -15,10 +15,10 @@ class Cours
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['getAllCours'])]
+    #[Groups(['getAllCours', 'groupForCours'])]
     private ?int $id = null;
 
-    #[Groups(['getAllCours'])]
+    #[Groups(['getAllCours', 'groupForCours'])]
     #[ORM\Column(length: 255)]
     private ?string $nom = null;
 
@@ -26,7 +26,7 @@ class Cours
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[Groups(['getAllCours'])]
+    #[Groups(['getAllCours', 'groupForCours'])]
     #[ORM\Column(length: 255)]
     private ?string $jour = null;
 
@@ -55,9 +55,13 @@ class Cours
     #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'cours')]
     private Collection $users;
 
+    #[ORM\OneToMany(targetEntity: CoursAccess::class, mappedBy: 'cours')]
+    private Collection $coursAccesses;
+    
     public function __construct()
     {
         $this->users = new ArrayCollection();
+        $this->coursAccesses = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -195,6 +199,36 @@ class Cours
     {
         if ($this->users->removeElement($user)) {
             $user->removeCours($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, CoursAccess>
+     */
+    public function getCoursAccesses(): Collection
+    {
+        return $this->coursAccesses;
+    }
+
+    public function addCoursAccess(CoursAccess $coursAccess): static
+    {
+        if (!$this->coursAccesses->contains($coursAccess)) {
+            $this->coursAccesses->add($coursAccess);
+            $coursAccess->setCours($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCoursAccess(CoursAccess $coursAccess): static
+    {
+        if ($this->coursAccesses->removeElement($coursAccess)) {
+            // set the owning side to null (unless already changed)
+            if ($coursAccess->getCours() === $this) {
+                $coursAccess->setCours(null);
+            }
         }
 
         return $this;

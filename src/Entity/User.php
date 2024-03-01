@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
@@ -15,8 +16,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
+    #[Groups(['groupForUser'])]
     private ?int $id = null;
 
+    #[Groups(['groupForUser'])]
     #[ORM\Column(type: 'string', length: 180, unique: true)]
     private ?string $email = null;
 
@@ -36,9 +39,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: Cours::class, inversedBy: 'users')]
     private Collection $cours;
 
+    #[ORM\OneToMany(targetEntity: CoursAccess::class, mappedBy: 'user')]
+    private Collection $coursAccesses;
+
     public function __construct()
     {
         $this->cours = new ArrayCollection();
+        $this->coursAccesses = new ArrayCollection();
     }
 
     // UserInterface methods
@@ -133,6 +140,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if ($this->cours->removeElement($cours)) {
             $cours->removeUser($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, CoursAccess>
+     */
+    public function getCoursAccesses(): Collection
+    {
+        return $this->coursAccesses;
+    }
+
+    public function addCoursAccess(CoursAccess $coursAccess): static
+    {
+        if (!$this->coursAccesses->contains($coursAccess)) {
+            $this->coursAccesses->add($coursAccess);
+            $coursAccess->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCoursAccess(CoursAccess $coursAccess): static
+    {
+        if ($this->coursAccesses->removeElement($coursAccess)) {
+            // set the owning side to null (unless already changed)
+            if ($coursAccess->getUser() === $this) {
+                $coursAccess->setUser(null);
+            }
         }
 
         return $this;
