@@ -138,6 +138,4 @@ class PersonaController extends AbstractController
 
     // FIN CRUD PERSONA
 
-
-
 }

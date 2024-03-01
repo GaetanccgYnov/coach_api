@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -30,6 +32,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: 'json')]
     private array $roles = [];
+
+    #[ORM\ManyToMany(targetEntity: Cours::class, inversedBy: 'users')]
+    private Collection $cours;
+
+    public function __construct()
+    {
+        $this->cours = new ArrayCollection();
+    }
 
     // UserInterface methods
     public function getUsername(): string
@@ -98,6 +108,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRoles(array $roles): self
     {
         $this->roles = $roles;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Cours>
+     */
+    public function getCours(): Collection
+    {
+        return $this->cours;
+    }
+
+    public function addCours(Cours $cours): self
+    {
+        if (!$this->cours->contains($cours)) {
+            $this->cours->add($cours);
+            $cours->addUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCours(Cours $cours): self
+    {
+        if ($this->cours->removeElement($cours)) {
+            $cours->removeUser($this);
+        }
+
         return $this;
     }
 }

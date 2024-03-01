@@ -15,6 +15,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Cours;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Symfony\Component\Security\Core\Security;
 
 class CoursController extends AbstractController
 {
@@ -136,6 +137,45 @@ class CoursController extends AbstractController
 
     // FIN CRUD COURS
 
+    // DEBUT INSCRIPTION COURS
 
+    #[Route('/api/cours/{id}/inscrire', name: 'cours.inscrire', methods: ['POST'])]
+    public function inscrire(int $id, CoursRepository $coursRepository, Security $security, EntityManagerInterface $manager)
+    {
+        $cours = $coursRepository->find($id);
+        if (!$cours) {
+            return new JsonResponse("Cours not found", JsonResponse::HTTP_NOT_FOUND);
+        }
 
+        $user = $security->getUser();
+        if (!$user) {
+            return new JsonResponse("User not authenticated", JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $cours->addUser($user);
+        $manager->flush();
+
+        return new JsonResponse("User successfully enrolled in the course", JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/api/cours/{id}/desinscrire', name: 'cours.desinscrire', methods: ['POST'])]
+    public function desinscrire(int $id, CoursRepository $coursRepository, Security $security, EntityManagerInterface $manager)
+    {
+        $cours = $coursRepository->find($id);
+        if (!$cours) {
+            return new JsonResponse("Cours not found", JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        $user = $security->getUser();
+        if (!$user) {
+            return new JsonResponse("User not authenticated", JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $cours->removeUser($user);
+        $manager->flush();
+
+        return new JsonResponse("User successfully unenrolled in the course", JsonResponse::HTTP_OK);
+    }
+
+    // FIN INSCRIPTION COURS
 }
