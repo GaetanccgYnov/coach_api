@@ -18,6 +18,8 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Component\Security\Core\Security;
 use App\Repository\UserRepository;
 use App\Entity\CoursAccess;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class CoursController extends AbstractController
 {
@@ -56,6 +58,54 @@ class CoursController extends AbstractController
 
     #[Route('/api/cours', name: 'cours.create', methods: ['POST'])]
     #[IsGranted("ROLE_COACH", statusCode: 403, message: "Access denied")]
+    /**
+     * @OA\Post(
+     *     path="/api/cours",
+     *     tags={"Cours"},
+     *     summary="Crée un nouveau cours.",
+     *     @OA\Response(
+     *         response=201,
+     *         description="Retourne le cours créé",
+     *         @OA\JsonContent(ref=@Model(type=Cours::class, groups={"getAllCours"}))
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Accès refusé"
+     *     ),
+     *     @OA\Parameter(
+     *         name="nom",
+     *         in="query",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="description",
+     *         in="query",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="jour",
+     *         in="query",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="heureDebut",
+     *         in="query",
+     *         @OA\Schema(type="string", format="time")
+     *     ),
+     *     @OA\Parameter(
+     *         name="heureFin",
+     *         in="query",
+     *         @OA\Schema(type="string", format="time")
+     *     ),
+     *     @OA\Parameter(
+     *         name="placesDisponibles",
+     *         in="query",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     security={{"bearerAuth":{}}}
+     * )
+     */
     public function createCours(Request $request, ValidatorInterface $validator, TagAwareCacheInterface $cache, UrlGeneratorInterface $urlGenerator, SerializerInterface $serializer, EntityManagerInterface $manager, CoursRepository $coursRepository, UserRepository $userRepository) {
         $data = $request->toArray();
 
